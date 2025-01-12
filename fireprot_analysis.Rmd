@@ -1,0 +1,74 @@
+---
+title: "Computational & Synthetic Biology"
+author: "Alexa"
+date: "2025-01-12"
+output: html_document
+---
+
+## Data
+
+Importing data from fireprot 2.0 job 4nudmg (<https://loschmidt.chemi.muni.cz/fireprotweb/job/4nudmq>)
+
+```{r, data_import}
+fireprot_data <- read_excel("./fireprot_data.xlsx", range = "B2:I14309")
+```
+
+## Potential Mutations in catalytic site
+
+Positions marked as active in catalytic site have been marked in excel file beforehand. Could be interesting to modify to increase activity, however are likely highly conserved.
+
+#### Check how conserved catalytic site enzymes are: 
+
+```{r, catalytic}
+library(dplyr)
+fireprot_data %>% filter(`Catalytic site` == 1) %>% select(position, conservation_score) %>% table
+```
+
+Catalytic enzymes are highly conserved, with conservation scores ranging from 6 to 9.
+
+S642 is the catalytic enzyme with the lowest conservation and therefore most suitable for mutation.
+
+#### What mutations could be introduced at S642?
+
+```{r, S642}
+fireprot_data %>% filter(position == 642) %>% select(mutation, foldx, rosetta) 
+```
+
+No foldx or rosetta score available to guide choice of mutation. Choice by biological concepts, e.g. chose AA with properties similar to Serine.
+
+## Potential Mutations outside of catalytic site
+
+Efficiency of an enzyme can not only be improved by changing catalytic site but also by improving stability. Higher stability can for example allow function under a higher temperature which usually increases speed of reactions.
+
+#### Mutations for stability improvement
+
+Wanted:
+
+-   low conservation score (changes less likely to disturb enzyme)
+
+-   low foldx and rosetta score (show change of free energy after mutations, negative values implicate improved stability)
+
+Filter for only those mutations with foldx + rosetta score available and determine the distribution of conservation scores
+
+```{r}
+fireprot_data %>% filter(foldx != "null" & rosetta != "null") %>% select(conservation_score) %>% table
+```
+
+Conservation scores low, further investigate mutations with 1 or 2 (artificial cut off).
+
+```{r}
+fireprot_data %>% filter(foldx != "null" & rosetta != "null" & conservation_score<= 2) %>% select(position, residue, mutation, foldx, rosetta, conservation_score) -> mutation_candidates
+
+# apply right data type 
+mutation_candidates %>% mutate(foldx = as.double(foldx), rosetta = as.double(rosetta)) -> mutation_candidates
+
+print(mutation_candidates)
+```
+
+These 10 mutations could be experimentally tested for their effect on efficiency and stability.
+
+```{r}
+getwd()
+
+```
+
